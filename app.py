@@ -35,6 +35,11 @@ def get_sensor_value():
     global sensor_value
     return jsonify({"sensor_value": sensor_value}), 200
 
+@app.route("/get_voltage", methods=["GET"])
+def get_voltage():
+    global set_voltage
+    return jsonify({"set_voltage": set_voltage}), 200
+
 @app.route("/")
 def home():
     return render_template("index.html", set_voltage=set_voltage, sensor_value=sensor_value)
