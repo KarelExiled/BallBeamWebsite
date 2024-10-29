@@ -18,14 +18,26 @@ def set_voltage_endpoint():
         return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), 200
     return jsonify({"error": "Invalid input"}), 400
 
-@app.route("/update_sensor", methods=["POST"])
-def update_sensor_endpoint():
-    global sensor_value
-    data = request.get_json()
-    if "sensor_value" in data:
-        sensor_value = data["sensor_value"]
-        return jsonify({"message": "Sensor value updated", "sensor_value": sensor_value, "status": "success"}), 200
-    return jsonify({"error": "Invalid input"}), 400
+
+@app.route('/update_sensor', methods=['POST'])
+def update_sensor():
+    try:
+        # Parse the JSON data from the request
+        data = request.json
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+
+        # Extract expected fields from the data (adjust these field names as per your ESP code)
+        sensor_value = data.get("sensor_value")
+        if sensor_value is None:
+            return jsonify({"error": "Missing sensor value"}), 400
+
+        # Process the sensor data here (e.g., storing, logging, etc.)
+
+        return jsonify({"message": "Sensor data updated", "status": "success"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/")
 def home():
