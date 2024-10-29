@@ -21,7 +21,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ voltage: voltage })
+                body: JSON.stringify({ voltage: parseInt(voltage) })
             })
             .then(response => response.json())
             .then(data => {
