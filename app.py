@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, render_template_string
 import requests
+from flask_cors import CORS  # Import CORS to handle cross-origin requests
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Store the set voltage and sensor value
 set_voltage = 215  # Initial voltage
 sensor_value = 0   # Initial sensor value
-esp32_url = "https://ballbeam.onrender.com/set_voltage"  # Replace with the actual IP of your ESP32
 
 @app.route("/set_voltage", methods=["POST"])
 def set_voltage_endpoint():
@@ -14,12 +15,7 @@ def set_voltage_endpoint():
     data = request.get_json()
     if "voltage" in data:
         set_voltage = data["voltage"]
-        # Send the new set voltage to the ESP32
-        try:
-            response = requests.post(esp32_url, json={"voltage": set_voltage})
-            return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), response.status_code
-        except requests.exceptions.RequestException as e:
-            return jsonify({"error": "Failed to send to ESP32", "details": str(e)}), 500
+        return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), 200
     return jsonify({"error": "Invalid input"}), 400
 
 @app.route("/update_sensor", methods=["POST"])
