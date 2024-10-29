@@ -1,33 +1,42 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 
-# Variables to store sensor data and set voltage
-sensor_value = 0
-set_voltage = 215  # Initial value for DAC output
-
-@app.route("/")
-def home():
-    return render_template("index.html", sensor_value=sensor_value, set_voltage=set_voltage)
+# Store the set voltage and sensor value
+set_voltage = 215  # Initial voltage
+sensor_value = 0   # Initial sensor value
 
 @app.route("/set_voltage", methods=["POST"])
 def set_voltage_endpoint():
     global set_voltage
     data = request.get_json()
-
-    new_voltage = data.get("voltage")
-    if new_voltage is not None and 0 <= new_voltage <= 255:
-        set_voltage = new_voltage
-        return jsonify({"status": "success", "set_voltage": set_voltage}), 200
-    return jsonify({"status": "error", "message": "Invalid voltage value"}), 400
+    if "voltage" in data:
+        set_voltage = data["voltage"]
+        return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), 200
+    return jsonify({"error": "Invalid input"}), 400
 
 @app.route("/update_sensor", methods=["POST"])
-def update_sensor():
+def update_sensor_endpoint():
     global sensor_value
     data = request.get_json()
+    if "sensor_value" in data:
+        sensor_value = data["sensor_value"]
+        return jsonify({"message": "Sensor value updated", "sensor_value": sensor_value, "status": "success"}), 200
+    return jsonify({"error": "Invalid input"}), 400
 
-    sensor_value = data.get("sensor_value")
-    return jsonify({"status": "success", "sensor_value": sensor_value}), 200
+@app.route("/")
+def home():
+    # Render the home page with current values
+    return render_template_string("""
+        <html>
+            <head><title>ESP32 Control</title></head>
+            <body>
+                <h1>ESP32 Control</h1>
+                <p>Current Set Voltage: {{ set_voltage }}</p>
+                <p>Current Sensor Value: {{ sensor_value }}</p>
+            </body>
+        </html>
+    """, set_voltage=set_voltage, sensor_value=sensor_value)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8000)
+    app.run(debug=True, host='0.0.0.0')  # Run on all network interfaces
