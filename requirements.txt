@@ -1,6 +1,6 @@
 Flask==2.0.1
 requests==2.25.1
 matplotlib==3.4.3
-numpy>=1.20.0,<2.0.0  # Changed to avoid compatibility issues
-scipy==1.7.1
+numpy>=1.21.0,<2.0.0  # Allow versions compatible with Python 3.8+
+scipy>=1.7.0,<2.0.0  # Allow versions compatible with Python 3.8+
 gunicorn==20.1.0
