@@ -6,7 +6,7 @@ app = Flask(__name__)
 # Store the set voltage and sensor value
 set_voltage = 215  # Initial voltage
 sensor_value = 0   # Initial sensor value
-esp32_url = "http://192.168.1.100/set_voltage"  # Replace with the actual IP of your ESP32
+esp32_url = "https://ballbeam.onrender.com/set_voltage"  # Replace with the actual IP of your ESP32
 
 @app.route("/set_voltage", methods=["POST"])
 def set_voltage_endpoint():
