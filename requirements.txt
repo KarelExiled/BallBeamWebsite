@@ -1,6 +1,6 @@
-Flask==2.0.1
+Flask==2.2.2  # or latest version compatible with your code
 requests==2.25.1
-matplotlib==3.4.3
-numpy>=1.21.0,<2.0.0  # Allow versions compatible with Python 3.8+
-scipy>=1.7.0,<2.0.0  # Allow versions compatible with Python 3.8+
+matplotlib==3.6.3  # or latest version compatible with your code
+numpy>=1.24.0,<2.0.0  # Updated for compatibility with Python 3.11
+scipy>=1.9.0,<2.0.0  # Updated for compatibility with Python 3.11
 gunicorn==20.1.0
