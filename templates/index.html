@@ -3,50 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Control Panel</title>
+    <title>ESP32 Real-Time Plot</title>
 </head>
 <body>
-    <h1>ESP32 Control Panel</h1>
-    <p>Current Sensor Value: <span id="sensor-value">{{ sensor_value }}</span></p>
-    <p>Set Voltage (0-255): 
-        <input type="number" id="set-voltage" min="0" max="255" value="{{ set_voltage }}">
-        <button onclick="updateVoltage()">Set Voltage</button>
-    </p>
-
-    <script>
-        function updateVoltage() {
-            const voltage = document.getElementById('set-voltage').value;
-            fetch('/set_voltage', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ voltage: parseInt(voltage) })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert('Set Voltage updated to: ' + data.set_voltage);
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
-        }
-
-        // Function to periodically fetch and update the sensor value
-        function fetchSensorValue() {
-            setInterval(() => {
-                fetch('/sensor_value')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('sensor-value').innerText = data.sensor_value;
-                    })
-                    .catch((error) => {
-                        console.error('Error fetching sensor value:', error);
-                    });
-            }, 5000); // Adjust the interval as needed
-        }
-
-        fetchSensorValue();
-    </script>
+    <h1>ESP32 Real-Time Plot and Control</h1>
+    <p>Set Voltage: {{ set_voltage }}</p>
+    <h3>Adjust Set Voltage:</h3>
+    <form action="/set_voltage" method="post">
+        <input type="number" name="voltage" min="0" max="255" value="{{ set_voltage }}">
+        <input type="submit" value="Set Voltage">
+    </form>
+    <h3>System Response Plot:</h3>
+    {% if plot_file %}
+    <img src="{{ plot_file }}" alt="Time Domain Plot">
+    {% else %}
+    <p>No data to display.</p>
+    {% endif %}
 </body>
 </html>
