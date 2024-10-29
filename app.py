@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, render_template_string
+import requests
 
 app = Flask(__name__)
 
 # Store the set voltage and sensor value
 set_voltage = 215  # Initial voltage
 sensor_value = 0   # Initial sensor value
+esp32_url = "http://192.168.1.100/set_voltage"  # Replace with the actual IP of your ESP32
 
 @app.route("/set_voltage", methods=["POST"])
 def set_voltage_endpoint():
@@ -12,7 +14,12 @@ def set_voltage_endpoint():
     data = request.get_json()
     if "voltage" in data:
         set_voltage = data["voltage"]
-        return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), 200
+        # Send the new set voltage to the ESP32
+        try:
+            response = requests.post(esp32_url, json={"voltage": set_voltage})
+            return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), response.status_code
+        except requests.exceptions.RequestException as e:
+            return jsonify({"error": "Failed to send to ESP32", "details": str(e)}), 500
     return jsonify({"error": "Invalid input"}), 400
 
 @app.route("/update_sensor", methods=["POST"])
@@ -34,6 +41,11 @@ def home():
                 <h1>ESP32 Control</h1>
                 <p>Current Set Voltage: {{ set_voltage }}</p>
                 <p>Current Sensor Value: {{ sensor_value }}</p>
+                <form action="/set_voltage" method="post">
+                    <label for="voltage">Set New Voltage (0-3300):</label>
+                    <input type="number" id="voltage" name="voltage" min="0" max="3300" value="{{ set_voltage }}">
+                    <input type="submit" value="Update Voltage">
+                </form>
             </body>
         </html>
     """, set_voltage=set_voltage, sensor_value=sensor_value)
