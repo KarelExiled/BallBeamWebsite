@@ -5,39 +5,42 @@ from flask import Blueprint, current_app
 
 views = Blueprint('views', __name__)
 
-
 def generate_plot(sensor_values, set_voltage):
-    # Vul de sensor_values met dummy data als er minder dan 100 zijn
+    # If we have less than 100 readings, fill with dummy data
     if len(sensor_values) < 100:
         sensor_values = [0] * (100 - len(sensor_values)) + sensor_values
 
-    # Zorg ervoor dat we alleen de laatste 100 waarden nemen
+    # Ensure we only take the last 100 readings
     sensor_values = sensor_values[-100:]
 
-    # Bereken de tijd en de fout
-    time = np.arange(100)
-    error_values = [set_voltage - value for value in sensor_values]  # Bereken de fout
+    time = np.arange(len(sensor_values))
 
-    # Plot de waarden
-    plt.figure(figsize=(10, 6))
-    plt.plot(time, sensor_values, label='Gemeten Waarden', marker='o')
-    plt.plot(time, [set_voltage] * len(time), label='Setpoint', linestyle='--')
-    plt.plot(time, error_values, label='Fout', linestyle='--', color='orange')
+    # Calculate rise time, settling time, and overshoot
+    rise_time = np.argmax(np.array(sensor_values) >= (set_voltage * 0.9))  # Time to reach 90% of set voltage
+    settling_time = np.argmax(np.abs(np.array(sensor_values) - set_voltage) < (set_voltage * 0.05))  # Time to settle within 5%
+    overshoot = (max(sensor_values) - set_voltage) / set_voltage * 100 if set_voltage != 0 else 0  # Percentage overshoot
 
-    plt.title('Sensorwaarden en Fout Over Tijd')
-    plt.xlabel('Tijd')
-    plt.ylabel('Waarde')
+    # Prepare the plot
+    plt.figure(figsize=(12, 7))
+    plt.plot(time, sensor_values, label='Sensor Values', marker='o', markersize=3)
+    plt.plot(time, [set_voltage] * len(time), label='Set Voltage', linestyle='--', color='orange')
+    plt.axvline(x=rise_time, color='r', linestyle='--', label='Rise Time')
+    plt.axvline(x=settling_time, color='g', linestyle='--', label='Settling Time')
+
+    # Annotate overshoot on the plot
+    plt.text(rise_time, max(sensor_values), f'Rise Time: {rise_time} s', color='red', verticalalignment='bottom')
+    plt.text(settling_time, set_voltage + 10, f'Settling Time: {settling_time} s', color='green', verticalalignment='bottom')
+    plt.text(time[-1], set_voltage, f'Overshoot: {overshoot:.2f}%', color='purple', verticalalignment='bottom')
+
+    plt.title('Sensor Readings Over Time')
+    plt.xlabel('Time')
+    plt.ylabel('Sensor Value')
     plt.legend()
     plt.grid()
 
-    # Sla de plot op in de static folder
+    # Save the plot in the static folder
     plot_path = os.path.join(current_app.static_folder, 'sensor_plot.png')
     plt.savefig(plot_path)
     plt.close()
 
-    return 'sensor_plot.png'
-
-@views.route('/plot')
-def plot():
-    # This route is no longer needed; plot generation is handled via /make_plot
-    pass
+    return 'sensor_plot.png'  # Return the filename for rendering in the template
