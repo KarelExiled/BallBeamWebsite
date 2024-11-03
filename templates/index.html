@@ -102,6 +102,18 @@
             width: 100%;
             box-shadow: 0 -1px 10px rgba(0, 0, 0, 0.1);
         }
+        /* Additional styles for the plot */
+        .plot-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
     </style>
     <script>
         async function fetchData() {
@@ -141,6 +153,16 @@
         <p>Last 100 Sensor Readings:</p>
         <p id="sensorValues">No data yet</p>
         <button onclick="fetchData()">Refresh Data</button>
+
+        <!-- Plot Display Section -->
+        <div class="plot-container">
+            {% if plot_path %}
+            <h3>Sensor Plot:</h3>
+            <img src="{{ url_for('static', filename=plot_path) }}" alt="Sensor Plot">
+            {% else %}
+            <p>No plot available yet.</p>
+            {% endif %}
+        </div>
     </div>
 
     <footer>
