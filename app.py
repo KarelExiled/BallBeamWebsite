@@ -43,11 +43,16 @@ def get_measurements():
         set_voltage=app.data_store["set_voltage"]
     )
 
-@app.route('/make_plot', methods=['POST'])
+@views.route('/make_plot', methods=['POST'])
 def make_plot():
-    from views import generate_plot  # Import the plot generation function
-    plot_path = generate_plot(app.data_store["sensor_values"], app.data_store["set_voltage"])
-    return jsonify(plot_path=plot_path)  # Return the path to the plot image
+    num_readings = int(request.form.get('num_readings', 100))  # Get the user-defined number of readings
+    num_readings = max(5, min(num_readings, 100))  # Ensure it's between 5 and 100
+
+    sensor_values = current_app.data_store["sensor_values"][-num_readings:]  # Get the last N sensor values
+    set_voltage = current_app.data_store["set_voltage"]  # Access the current set voltage
+    plot_filename = generate_plot(sensor_values, set_voltage)  # Generate the plot
+    return {'plot_path': plot_filename}  # Return the plot path as a response
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

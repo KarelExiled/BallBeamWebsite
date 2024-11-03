@@ -133,9 +133,14 @@
         }
 
         async function makePlot() {
+            const numReadings = document.getElementById("numReadings").value; // Get user input for readings
             try {
                 const response = await fetch('/make_plot', {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ num_readings: numReadings }) // Send number of readings to server
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -171,8 +176,13 @@
         <p id="sensorValues">No data yet</p>
         <button onclick="fetchData()">Refresh Data</button>
 
-        <!-- Make Plot Button -->
-        <button onclick="makePlot()">Make Plot</button>
+        <!-- Make Plot Form -->
+        <h3>Generate Plot</h3>
+        <form id="plotForm" onsubmit="event.preventDefault(); makePlot();"> <!-- Prevent form submission to refresh -->
+            <label for="numReadings">Number of Sensor Values to Plot (5-100):</label>
+            <input type="number" id="numReadings" name="num_readings" min="5" max="100" value="100">
+            <input type="submit" value="Generate Plot">
+        </form>
 
         <!-- Plot Display Section -->
         <div class="plot-container">

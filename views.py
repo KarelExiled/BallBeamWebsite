@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app, request
 
 views = Blueprint('views', __name__)
 
@@ -10,7 +10,7 @@ def generate_plot(sensor_values, set_voltage):
     if len(sensor_values) < 100:
         sensor_values = [0] * (100 - len(sensor_values)) + sensor_values
 
-    # Ensure we only take the last 100 readings
+    # Ensure we only take the last N readings
     sensor_values = sensor_values[-100:]
 
     time = np.arange(len(sensor_values))
@@ -44,3 +44,13 @@ def generate_plot(sensor_values, set_voltage):
     plt.close()
 
     return 'sensor_plot.png'  # Return the filename for rendering in the template
+
+@views.route('/make_plot', methods=['POST'])
+def make_plot():
+    num_readings = int(request.form.get('num_readings', 100))  # Get the user-defined number of readings
+    num_readings = max(5, min(num_readings, 100))  # Ensure it's between 5 and 100
+
+    sensor_values = current_app.data_store["sensor_values"][-num_readings:]  # Get the last N sensor values
+    set_voltage = current_app.data_store["set_voltage"]  # Access the current set voltage
+    plot_filename = generate_plot(sensor_values, set_voltage)  # Generate the plot
+    return {'plot_path': plot_filename}  # Return the plot path as a response
