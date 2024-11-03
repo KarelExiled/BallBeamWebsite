@@ -28,13 +28,17 @@ def update_sensor():
             data_store["sensor_values"].pop(0)
     return jsonify(success=True)
 
-@app.route('/get_measurements', methods=['GET'])
-def get_measurements():
-    return jsonify(sensor_values=data_store["sensor_values"], set_voltage=data_store["set_voltage"])
-
 @app.route('/get_voltage', methods=['GET'])
 def get_voltage():
     return jsonify(set_voltage=data_store["set_voltage"])
+
+# New endpoint to retrieve sensor readings and set voltage
+@app.route('/get_measurements', methods=['GET'])
+def get_measurements():
+    return jsonify(
+        sensor_values=data_store["sensor_values"],
+        set_voltage=data_store["set_voltage"]
+    )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
