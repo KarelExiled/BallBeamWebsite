@@ -5,38 +5,37 @@ from flask import Blueprint, current_app
 
 views = Blueprint('views', __name__)
 
+
 def generate_plot(sensor_values, set_voltage):
-    # If we have less than 100 readings, fill with dummy data
+    # Vul de sensor_values met dummy data als er minder dan 100 zijn
     if len(sensor_values) < 100:
         sensor_values = [0] * (100 - len(sensor_values)) + sensor_values
 
-    # Ensure we only take the last 100 readings
+    # Zorg ervoor dat we alleen de laatste 100 waarden nemen
     sensor_values = sensor_values[-100:]
 
+    # Bereken de tijd en de fout
     time = np.arange(100)
+    error_values = [set_voltage - value for value in sensor_values]  # Bereken de fout
 
-    # Calculate rise time, settling time, and overshoot
-    rise_time = np.argmax(np.array(sensor_values) >= (set_voltage * 0.9))  # Time to reach 90% of set voltage
-    settling_time = np.argmax(np.abs(np.array(sensor_values) - set_voltage) < (set_voltage * 0.05))  # Time to settle within 5%
-    overshoot = (max(sensor_values) - set_voltage) / set_voltage * 100 if set_voltage != 0 else 0  # Percentage overshoot
-
+    # Plot de waarden
     plt.figure(figsize=(10, 6))
-    plt.plot(time, sensor_values, label='Sensor Values', marker='o')
-    plt.plot(time, [set_voltage] * len(time), label='Set Voltage', linestyle='--')
-    plt.axvline(x=rise_time, color='r', linestyle='--', label='Rise Time')
-    plt.axvline(x=settling_time, color='g', linestyle='--', label='Settling Time')
-    plt.title('Sensor Readings Over Time')
-    plt.xlabel('Time')
-    plt.ylabel('Sensor Value')
+    plt.plot(time, sensor_values, label='Gemeten Waarden', marker='o')
+    plt.plot(time, [set_voltage] * len(time), label='Setpoint', linestyle='--')
+    plt.plot(time, error_values, label='Fout', linestyle='--', color='orange')
+
+    plt.title('Sensorwaarden en Fout Over Tijd')
+    plt.xlabel('Tijd')
+    plt.ylabel('Waarde')
     plt.legend()
     plt.grid()
 
-    # Save the plot in the static folder
+    # Sla de plot op in de static folder
     plot_path = os.path.join(current_app.static_folder, 'sensor_plot.png')
     plt.savefig(plot_path)
     plt.close()
 
-    return 'sensor_plot.png'  # Return the filename for rendering in the template
+    return 'sensor_plot.png'
 
 @views.route('/plot')
 def plot():
