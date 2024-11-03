@@ -43,5 +43,11 @@ def get_measurements():
         set_voltage=app.data_store["set_voltage"]
     )
 
+@app.route('/make_plot', methods=['POST'])
+def make_plot():
+    from views import generate_plot  # Import the plot generation function
+    plot_path = generate_plot(app.data_store["sensor_values"], app.data_store["set_voltage"])
+    return jsonify(plot_path=plot_path)  # Return the path to the plot image
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

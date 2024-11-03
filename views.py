@@ -1,16 +1,11 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from flask import Blueprint, render_template
-from flask import current_app
+from flask import Blueprint, current_app
 
 views = Blueprint('views', __name__)
 
-@views.route('/plot')
-def plot():
-    sensor_values = current_app.data_store["sensor_values"]
-    set_voltage = current_app.data_store["set_voltage"]
-
+def generate_plot(sensor_values, set_voltage):
     # If we have less than 100 readings, fill with dummy data
     if len(sensor_values) < 100:
         sensor_values = [0] * (100 - len(sensor_values)) + sensor_values
@@ -18,8 +13,6 @@ def plot():
     # Ensure we only take the last 100 readings
     sensor_values = sensor_values[-100:]
 
-    # Simulate set sensor value
-    set_sensor_values = [0, 4095, 0, 255] * 25  # Create a repeating pattern for demo purposes
     time = np.arange(100)
 
     # Calculate rise time, settling time, and overshoot
@@ -43,4 +36,9 @@ def plot():
     plt.savefig(plot_path)
     plt.close()
 
-    return render_template("index.html", set_voltage=set_voltage, plot_path='sensor_plot.png')
+    return 'sensor_plot.png'  # Return the filename for rendering in the template
+
+@views.route('/plot')
+def plot():
+    # This route is no longer needed; plot generation is handled via /make_plot
+    pass

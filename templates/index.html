@@ -131,6 +131,23 @@
                 alert("An error occurred while fetching data.");
             }
         }
+
+        async function makePlot() {
+            try {
+                const response = await fetch('/make_plot', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById("plotImage").src = "/static/" + data.plot_path; // Update the image source
+                } else {
+                    alert("Failed to create plot.");
+                }
+            } catch (error) {
+                console.error("Error making plot:", error);
+                alert("An error occurred while making the plot.");
+            }
+        }
     </script>
 </head>
 <body>
@@ -154,14 +171,13 @@
         <p id="sensorValues">No data yet</p>
         <button onclick="fetchData()">Refresh Data</button>
 
+        <!-- Make Plot Button -->
+        <button onclick="makePlot()">Make Plot</button>
+
         <!-- Plot Display Section -->
         <div class="plot-container">
-            {% if plot_path %}
             <h3>Sensor Plot:</h3>
-            <img src="{{ url_for('static', filename=plot_path) }}" alt="Sensor Plot">
-            {% else %}
-            <p>No plot available yet.</p>
-            {% endif %}
+            <img id="plotImage" src="{{ url_for('static', filename='sensor_plot.png') }}" alt="Sensor Plot">
         </div>
     </div>
 
