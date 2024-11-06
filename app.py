@@ -1,83 +1,48 @@
 from flask import Flask, request, jsonify, render_template
-import os
-import matplotlib.pyplot as plt
-from datetime import datetime
-from collections import deque
+from flask_cors import CORS  # Import CORS to handle cross-origin requests
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
-# Global variables
-sensor_values = deque(maxlen=100)  # Store the last 100 sensor readings
-set_voltage = 215  # Initial voltage value
+# Store the set voltage and sensor value
+set_voltage = 215  # Initial voltage
+sensor_value = 0   # Initial sensor value
 
-
-# Endpoint to update set voltage
-@app.route('/set_voltage', methods=['POST'])
-def set_voltage_route():
+@app.route("/set_voltage", methods=["POST"])
+def set_voltage_endpoint():
     global set_voltage
-    data = request.form
-    set_voltage = int(data.get("voltage", set_voltage))  # Update set voltage
-    return jsonify({"status": "success", "set_voltage": set_voltage})
+    data = request.get_json()
+    if "voltage" in data:
+        set_voltage = data["voltage"]
+        return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), 200
+    return jsonify({"error": "Invalid input"}), 400
 
-
-# Endpoint to fetch the current set voltage
-@app.route('/get_voltage', methods=['GET'])
-def get_voltage():
-    return jsonify({"set_voltage": set_voltage})
-
-
-# Endpoint to receive batched sensor data from the ESP32
 @app.route('/update_sensor', methods=['POST'])
 def update_sensor():
-    data = request.get_json()
-    values = data.get("sensor_values", [])
+    global sensor_value
+    data = request.json
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
 
-    for value in values:
-        sensor_values.append(value)  # Store each sensor value
+    sensor_value = data.get("sensor_value", sensor_value)
+    if sensor_value is None:
+        return jsonify({"error": "Missing sensor value"}), 400
 
-    return jsonify({"status": "success", "message": "Sensor data updated"})
+    return jsonify({"message": "Sensor data updated", "status": "success"}), 200
 
+@app.route("/sensor_value", methods=["GET"])
+def get_sensor_value():
+    global sensor_value
+    return jsonify({"sensor_value": sensor_value}), 200
 
-# Endpoint to send sensor values and current set voltage to the client-side JavaScript
-@app.route('/get_measurements', methods=['GET'])
-def get_measurements():
-    return jsonify({
-        "sensor_values": list(sensor_values),
-        "set_voltage": set_voltage
-    })
+@app.route("/get_voltage", methods=["GET"])
+def get_voltage():
+    global set_voltage
+    return jsonify({"set_voltage": set_voltage}), 200
 
+@app.route("/")
+def home():
+    return render_template("index.html", set_voltage=set_voltage, sensor_value=sensor_value)
 
-# Endpoint to create a plot based on the number of sensor values requested
-@app.route('/make_plot', methods=['POST'])
-def make_plot():
-    data = request.get_json()
-    num_readings = int(data.get("num_readings", 100))
-
-    # Limit readings to what's available
-    plot_values = list(sensor_values)[-num_readings:]
-
-    # Plotting
-    plt.figure(figsize=(10, 4))
-    plt.plot(plot_values, marker='o', linestyle='-', color='b')
-    plt.title("Sensor Data Plot")
-    plt.xlabel("Reading")
-    plt.ylabel("Sensor Value")
-
-    # Save plot to a file
-    plot_filename = f"static/sensor_plot_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
-    plt.savefig(plot_filename)
-    plt.close()
-
-    return jsonify({"plot_path": plot_filename})
-
-
-# Serve the main HTML page
-@app.route('/')
-def index():
-    return render_template('index.html', set_voltage=set_voltage)
-
-
-# Run the Flask app
 if __name__ == '__main__':
-    os.makedirs("static", exist_ok=True)  # Create static directory for plots
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True, host='0.0.0.0')  # Run on all network interfaces
