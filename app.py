@@ -1,48 +1,49 @@
+# Assuming this is Flask application setup file, app.py
+
 from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS  # Import CORS to handle cross-origin requests
+from datetime import datetime
+import os
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
 
-# Store the set voltage and sensor value
-set_voltage = 215  # Initial voltage
-sensor_value = 0   # Initial sensor value
+# Initialize default values for sensor data and set voltage
+sensor_data = []
+set_voltage = 0
 
-@app.route("/set_voltage", methods=["POST"])
-def set_voltage_endpoint():
+@app.route('/')
+def index():
+    return render_template('index.html', set_voltage=set_voltage)
+
+@app.route('/set_voltage', methods=['POST'])
+def set_voltage_route():
     global set_voltage
-    data = request.get_json()
-    if "voltage" in data:
-        set_voltage = data["voltage"]
-        return jsonify({"message": "Set voltage updated", "set_voltage": set_voltage, "status": "success"}), 200
-    return jsonify({"error": "Invalid input"}), 400
+    try:
+        # Get voltage from form data
+        set_voltage = int(request.form['voltage'])
+        return jsonify({"status": "success", "set_voltage": set_voltage})
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid voltage value."})
 
 @app.route('/update_sensor', methods=['POST'])
 def update_sensor():
-    global sensor_value
-    data = request.json
-    if not data:
-        return jsonify({"error": "No JSON data provided"}), 400
+    global sensor_data
+    data = request.get_json()
+    sensor_value = data.get("sensor_value")
+    if sensor_value is not None:
+        sensor_data.append(sensor_value)
+        # Limit to last 100 readings
+        if len(sensor_data) > 100:
+            sensor_data.pop(0)
+        return jsonify({"status": "success", "sensor_value": sensor_value})
+    return jsonify({"status": "error", "message": "Invalid sensor data."})
 
-    sensor_value = data.get("sensor_value", sensor_value)
-    if sensor_value is None:
-        return jsonify({"error": "Missing sensor value"}), 400
-
-    return jsonify({"message": "Sensor data updated", "status": "success"}), 200
-
-@app.route("/sensor_value", methods=["GET"])
-def get_sensor_value():
-    global sensor_value
-    return jsonify({"sensor_value": sensor_value}), 200
-
-@app.route("/get_voltage", methods=["GET"])
+@app.route('/get_voltage', methods=['GET'])
 def get_voltage():
-    global set_voltage
-    return jsonify({"set_voltage": set_voltage}), 200
+    return jsonify({"set_voltage": set_voltage})
 
-@app.route("/")
-def home():
-    return render_template("index.html", set_voltage=set_voltage, sensor_value=sensor_value)
+@app.route('/get_measurements', methods=['GET'])
+def get_measurements():
+    return jsonify({"sensor_values": sensor_data, "set_voltage": set_voltage})
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')  # Run on all network interfaces
+if __name__ == "__main__":
+    app.run(debug=True)
