@@ -6,7 +6,7 @@ app = Flask(__name__)
 # Store sensor and voltage data
 app.data_store = {
     "sensor_values": [],
-    "set_voltage": 215  # default initial value
+    "set_voltage": 126  # default initial value
 }
 
 app.register_blueprint(views)  # Register the views blueprint
