@@ -1,58 +1,83 @@
 from flask import Flask, request, jsonify, render_template
-from views import views  # Import the views module
+import os
+import matplotlib.pyplot as plt
+from datetime import datetime
+from collections import deque
 
 app = Flask(__name__)
 
-# Store sensor and voltage data
-app.data_store = {
-    "sensor_values": [],
-    "set_voltage": 215  # default initial value
-}
+# Global variables
+sensor_values = deque(maxlen=100)  # Store the last 100 sensor readings
+set_voltage = 215  # Initial voltage value
 
-app.register_blueprint(views)  # Register the views blueprint
 
-@app.route('/')
-def index():
-    return render_template("index.html", set_voltage=app.data_store["set_voltage"])
-
+# Endpoint to update set voltage
 @app.route('/set_voltage', methods=['POST'])
-def set_voltage():
-    voltage = request.form.get("voltage", type=int)
-    if voltage is not None and 0 <= voltage <= 255:
-        app.data_store["set_voltage"] = voltage
-    return render_template("index.html", set_voltage=app.data_store["set_voltage"])
+def set_voltage_route():
+    global set_voltage
+    data = request.form
+    set_voltage = int(data.get("voltage", set_voltage))  # Update set voltage
+    return jsonify({"status": "success", "set_voltage": set_voltage})
 
-@app.route('/update_sensor', methods=['POST'])
-def update_sensor():
-    sensor_value = request.json.get("sensor_value")
-    if sensor_value is not None:
-        app.data_store["sensor_values"].append(sensor_value)
-        if len(app.data_store["sensor_values"]) > 100:  # keep only the last 100 readings
-            app.data_store["sensor_values"].pop(0)
-    return jsonify(success=True)
 
+# Endpoint to fetch the current set voltage
 @app.route('/get_voltage', methods=['GET'])
 def get_voltage():
-    return jsonify(set_voltage=app.data_store["set_voltage"])
+    return jsonify({"set_voltage": set_voltage})
 
-# New endpoint to retrieve sensor readings and set voltage
+
+# Endpoint to receive batched sensor data from the ESP32
+@app.route('/update_sensor', methods=['POST'])
+def update_sensor():
+    data = request.get_json()
+    values = data.get("sensor_values", [])
+
+    for value in values:
+        sensor_values.append(value)  # Store each sensor value
+
+    return jsonify({"status": "success", "message": "Sensor data updated"})
+
+
+# Endpoint to send sensor values and current set voltage to the client-side JavaScript
 @app.route('/get_measurements', methods=['GET'])
 def get_measurements():
-    return jsonify(
-        sensor_values=app.data_store["sensor_values"],
-        set_voltage=app.data_store["set_voltage"]
-    )
+    return jsonify({
+        "sensor_values": list(sensor_values),
+        "set_voltage": set_voltage
+    })
 
-@views.route('/make_plot', methods=['POST'])
+
+# Endpoint to create a plot based on the number of sensor values requested
+@app.route('/make_plot', methods=['POST'])
 def make_plot():
-    num_readings = int(request.form.get('num_readings', 100))  # Get the user-defined number of readings
-    num_readings = max(5, min(num_readings, 100))  # Ensure it's between 5 and 100
+    data = request.get_json()
+    num_readings = int(data.get("num_readings", 100))
 
-    sensor_values = current_app.data_store["sensor_values"][-num_readings:]  # Get the last N sensor values
-    set_voltage = current_app.data_store["set_voltage"]  # Access the current set voltage
-    plot_filename = generate_plot(sensor_values, set_voltage)  # Generate the plot
-    return {'plot_path': plot_filename}  # Return the plot path as a response
+    # Limit readings to what's available
+    plot_values = list(sensor_values)[-num_readings:]
+
+    # Plotting
+    plt.figure(figsize=(10, 4))
+    plt.plot(plot_values, marker='o', linestyle='-', color='b')
+    plt.title("Sensor Data Plot")
+    plt.xlabel("Reading")
+    plt.ylabel("Sensor Value")
+
+    # Save plot to a file
+    plot_filename = f"static/sensor_plot_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
+    plt.savefig(plot_filename)
+    plt.close()
+
+    return jsonify({"plot_path": plot_filename})
 
 
+# Serve the main HTML page
+@app.route('/')
+def index():
+    return render_template('index.html', set_voltage=set_voltage)
+
+
+# Run the Flask app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    os.makedirs("static", exist_ok=True)  # Create static directory for plots
+    app.run(host='0.0.0.0', port=5000, debug=True)
