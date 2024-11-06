@@ -3,24 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Real-Time Plot</title>
+    <title>ESP32 Data Display</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+        header {
+            width: 100%;
+            background: #0056b3;
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h3 {
+            color: #007bff;
+            margin: 10px 0;
+            font-size: 1.8em;
+            text-align: center;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        input[type="number"] {
+            padding: 10px;
+            width: 120px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        input[type="number"]:focus {
+            border-color: #0056b3;
+            outline: none;
+        }
+        input[type="submit"], button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        input[type="submit"] {
+            background-color: #28a745;
+        }
+        input[type="submit"]:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+        }
+        button {
+            background-color: #007bff;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        footer {
+            margin-top: auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            width: 100%;
+            box-shadow: 0 -1px 10px rgba(0, 0, 0, 0.1);
+        }
+        /* Additional styles for the plot */
+        .plot-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+    </style>
+    <script>
+        async function fetchData() {
+            try {
+                const response = await fetch('/get_measurements');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById("sensorValues").innerText = data.sensor_values.join(", ");
+                    document.getElementById("setVoltage").innerText = data.set_voltage;
+                } else {
+                    alert("Failed to fetch data.");
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                alert("An error occurred while fetching data.");
+            }
+        }
+
+        async function makePlot() {
+            const numReadings = document.getElementById("numReadings").value; // Get user input for readings
+            try {
+                const response = await fetch('/make_plot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ num_readings: numReadings }) // Send number of readings to server
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById("plotImage").src = "/static/" + data.plot_path; // Update the image source
+                } else {
+                    alert("Failed to create plot.");
+                }
+            } catch (error) {
+                console.error("Error making plot:", error);
+                alert("An error occurred while making the plot.");
+            }
+        }
+    </script>
 </head>
 <body>
-    <h1>ESP32 Real-Time Plot and Control</h1>
-    <p>Set Voltage: {{ set_voltage }}</p>
-    <h3>Adjust Set Voltage:</h3>
-    <form action="/set_voltage" method="post">
-        <input type="number" name="voltage" min="0" max="255" value="{{ set_voltage }}">
-        <input type="submit" value="Set Voltage">
-    </form>
-    <h3>System Response Plot:</h3>
-    {% if plot_file %}
-    <img src="{{ plot_file }}" alt="Time Domain Plot">
-    {% else %}
-    <p>No data to display.</p>
-    {% endif %}
+    <header>
+        <h1>Project Ball Beam</h1>
+    </header>
+
+    <div class="container">
+        <div class="image-container">
+            <img src="https://github.com/KarelExiled/BallBeamWebsite/blob/main/static/Picture1.png?raw=true" alt="Ball-Beam Project">
+        </div>
+        <p>Set Voltage: <strong id="setVoltage">{{ set_voltage }}</strong></p>
+        <h3>Adjust Set Voltage:</h3>
+        <form action="/set_voltage" method="post">
+            <input type="number" name="voltage" min="0" max="255" value="{{ set_voltage }}">
+            <input type="submit" value="Set Voltage">
+        </form>
+        
+        <h3>Sensor Data</h3>
+        <p>Last 100 Sensor Readings:</p>
+        <p id="sensorValues">No data yet</p>
+        <button onclick="fetchData()">Refresh Data</button>
+
+        <!-- Make Plot Form -->
+        <h3>Generate Plot</h3>
+        <form id="plotForm" onsubmit="event.preventDefault(); makePlot();"> <!-- Prevent form submission to refresh -->
+            <label for="numReadings">Number of Sensor Values to Plot (5-100):</label>
+            <input type="number" id="numReadings" name="num_readings" min="5" max="100" value="100">
+            <input type="submit" value="Generate Plot">
+        </form>
+
+        <!-- Plot Display Section -->
+        <div class="plot-container">
+            <h3>Sensor Plot:</h3>
+            <img id="plotImage" src="{{ url_for('static', filename='sensor_plot.png') }}" alt="Sensor Plot">
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Project Ball Beam. All Rights Reserved.</p>
+    </footer>
 </body>
 </html>
-
-
-
