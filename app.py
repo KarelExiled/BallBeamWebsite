@@ -1,15 +1,15 @@
 from flask import Flask, request, jsonify, render_template
-from views import views  # Import the views module
+from views import views
 
 app = Flask(__name__)
 
 # Store sensor and voltage data
 app.data_store = {
     "sensor_values": [],
-    "set_voltage": 126  # default initial value
+    "set_voltage": 126
 }
 
-app.register_blueprint(views)  # Register the views blueprint
+app.register_blueprint(views)
 
 @app.route('/')
 def index():
@@ -22,20 +22,24 @@ def set_voltage():
         app.data_store["set_voltage"] = voltage
     return render_template("index.html", set_voltage=app.data_store["set_voltage"])
 
+
 @app.route('/update_sensor', methods=['POST'])
 def update_sensor():
-    sensor_value = request.json.get("sensor_value")
-    if sensor_value is not None:
-        app.data_store["sensor_values"].append(sensor_value)
-        if len(app.data_store["sensor_values"]) > 100:  # keep only the last 100 readings
-            app.data_store["sensor_values"].pop(0)
+    data = request.json.get("sensor_values")
+    if data and isinstance(data, list):
+        # Append each value in the batch to the sensor_values list
+        app.data_store["sensor_values"].extend(data)
+        # Keep only the last 100 readings
+        if len(app.data_store["sensor_values"]) > 100:
+            app.data_store["sensor_values"] = app.data_store["sensor_values"][-100:]
     return jsonify(success=True)
+
 
 @app.route('/get_voltage', methods=['GET'])
 def get_voltage():
     return jsonify(set_voltage=app.data_store["set_voltage"])
 
-# New endpoint to retrieve sensor readings and set voltage
+# Retrieve sensor readings and set voltage
 @app.route('/get_measurements', methods=['GET'])
 def get_measurements():
     return jsonify(
@@ -45,9 +49,9 @@ def get_measurements():
 
 @app.route('/make_plot', methods=['POST'])
 def make_plot():
-    from views import generate_plot  # Import the plot generation function
+    from views import generate_plot
     plot_path = generate_plot(app.data_store["sensor_values"], app.data_store["set_voltage"])
-    return jsonify(plot_path=plot_path)  # Return the path to the plot image
+    return jsonify(plot_path=plot_path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
