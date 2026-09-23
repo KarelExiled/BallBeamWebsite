@@ -1,0 +1,39 @@
+name: Companion v7 validate and package
+
+on:
+  push:
+    branches:
+      - companion-v7-delivery-20260923
+
+permissions:
+  contents: write
+
+jobs:
+  validate-package:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: companion-v7-delivery-20260923
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check updater JavaScript
+        run: node --check Companion-v7-PATCH/APPLY_COMPANION_V7.mjs
+      - name: Parse phone server TypeScript
+        run: npx -y esbuild Companion-v7-PATCH/phoneServer.ts --platform=node --format=esm --packages=external --outfile=/tmp/phoneServer.js
+      - name: Parse desktop overlay TypeScript
+        run: npx -y esbuild Companion-v7-PATCH/v7Overlay.ts --platform=browser --format=esm --outfile=/tmp/v7Overlay.js
+      - name: Build ZIP
+        run: |
+          rm -f Companion-v7-UPDATE.zip
+          zip -r Companion-v7-UPDATE.zip Companion-v7-PATCH
+          unzip -t Companion-v7-UPDATE.zip
+      - name: Commit ZIP to delivery branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Companion-v7-UPDATE.zip
+          git commit -m "Build Companion v7 update ZIP [skip ci]" || exit 0
+          git push origin HEAD:companion-v7-delivery-20260923
